@@ -7,7 +7,7 @@ import tempfile
 import webbrowser
 from PIL import Image
 from io import BytesIO
-
+import time
 # Replace with actual NETS-provided credentials and URLs
 API_URL_BASE = "https://uat-api.nets.com.sg/uat/merchantservices"
 API_KEY_ID = "231e4c11-135a-4457-bc84-3cc6d3565506"
@@ -52,7 +52,7 @@ def create_order_request(amount, invoice_ref, destination_url):
         "mti": "0200",
         "process_code": "990000",
         "amount": f"{int(amount * 100):012}",
-        "stan": "100001",
+        "stan": "100008",
         "transaction_time": now.strftime("%H%M%S"),
         "transaction_date": now.strftime("%m%d"),
         "entry_mode": "000",
@@ -62,7 +62,7 @@ def create_order_request(amount, invoice_ref, destination_url):
         "host_mid": "11137066800",
         "getQRCode": "Y",
         "communication_data": [{
-            "type": "http",
+            "type": "https_proxy",
             "category": "URL",
             "destination": destination_url,
             "addon": {"external_API_keyID": API_KEY_ID}
@@ -74,7 +74,7 @@ def create_order_request(amount, invoice_ref, destination_url):
             "E202": "SGD"
         }
     }
-
+    print("Order Request Payload:", json.dumps(payload, indent=4))
     response = send_request("/qr/dynamic/v1/order/request", payload)
     if response:
         print("Order Request Response:", json.dumps(response, indent=4))
@@ -101,7 +101,7 @@ def query_order(stan, txn_identifier):
         "txn_identifier": txn_identifier,
         "npx_data": {"E103": "37066801"}
     }
-
+    print("Order Query Payload:", json.dumps(payload, indent=4))
     response = send_request("/qr/dynamic/v1/transaction/query", payload)
     if response:
         print("Order Query Response:", json.dumps(response, indent=4))
@@ -127,7 +127,7 @@ def reverse_order(stan, txn_identifier, amount):
         "txn_identifier": txn_identifier,
         "npx_data": {"E103": "37066801"}
     }
-
+    print("Order Reversal Payload:", json.dumps(payload, indent=4))
     response = send_request("/qr/dynamic/v1/transaction/reversal", payload)
     if response:
         print("Order Reversal Response:", json.dumps(response, indent=4))
@@ -152,9 +152,8 @@ def display_qr_image(qr_code_base64):
 # Example usage
 if __name__ == "__main__":
     amount = 5.00  # SGD 1.00
-    invoice_ref = "INV12345678"  # Unique invoice reference
-    destination_url = "https://your-callback-url.com/notify"
-
+    invoice_ref = "INV12345680"  # Unique invoice reference
+    destination_url="https://api.fastnfresh.app/chai/listen"
     # Step 1: Create Order Request
     order_response = create_order_request(amount, invoice_ref, destination_url)
 
@@ -162,10 +161,10 @@ if __name__ == "__main__":
     if order_response:
         stan = order_response.get("stan", "000001")
         txn_identifier = order_response.get("txn_identifier", "")
+        input("Press Enter to continue...")
 
         # Step 2: Query Order
         query_response = query_order(stan, txn_identifier)
-
         # Step 3: Reverse Order
         if query_response:
             reverse_order(stan, txn_identifier, amount)
